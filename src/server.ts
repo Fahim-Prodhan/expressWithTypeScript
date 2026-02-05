@@ -55,14 +55,31 @@ app.post("/users", async (req: Request, res: Response) => {
     const query = `INSERT INTO users(name, email, age, phone, address) VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
     const value = [name, email, age, address, phone];
 
-   const result = await pool.query(query, value);
-   console.log(result.rows[0]);
-   
+    const result = await pool.query(query, value);
 
     res.status(201).json({
-        success:true,
-        message: "Data inserted!"
-    })
+      success: true,
+      message: "Data inserted!",
+      data: result.rows[0],
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+app.get("/users", async (req: Request, res: Response) => {
+  try {
+    const query = `SELECT * FROM users`;
+    const result = await pool.query(query);
+
+    res.status(201).json({
+      success: true,
+      message: "Data Fetch successfully!",
+      data: result.rows,
+    });
   } catch (error: any) {
     res.status(500).json({
       success: false,
