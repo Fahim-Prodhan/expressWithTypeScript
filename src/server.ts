@@ -1,21 +1,18 @@
-import express, { Request, Response } from 'express'
-import {Pool} from 'pg'
-import dotenv from 'dotenv'
-import path from 'path'
+import express, { Request, Response } from "express";
+import { Pool } from "pg";
+import dotenv from "dotenv";
+import path from "path";
 
-dotenv.config({path: path.join(process.cwd(), '.env')})
-const app = express()
-const port = 5000
-
+dotenv.config({ path: path.join(process.cwd(), ".env") });
+const app = express();
+const port = 5000;
 
 const pool = new Pool({
-    connectionString:`${process.env.DB_URL}`
-})
+  connectionString: `${process.env.DB_URL}`,
+});
 
-
-
-const initDB = async()=>{
-    await pool.query(`
+const initDB = async () => {
+  await pool.query(`
         CREATE TABLE IF NOT EXISTS users(
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
@@ -28,7 +25,7 @@ const initDB = async()=>{
         )
         `);
 
-        await pool.query(`
+  await pool.query(`
             CREATE TABLE IF NOT EXISTS todoes(
             id SERIAL PRIMARY KEY,
             user_id INT REFERENCES users(id) ON DELETE CASCADE,
@@ -40,23 +37,40 @@ const initDB = async()=>{
             updated_at TIMESTAMP DEFAULT NOW()
         )
             `);
-}
+};
 
 initDB();
 
 app.use(express.json());
 app.use(express.urlencoded());
 
-app.get('/', (req:Request, res:Response) => {
-  res.send('Hello !')
-})
+app.get("/", (req: Request, res: Response) => {
+  res.send("Hello !");
+});
 
-app.post('/', (req:Request, res:Response)=>{
-    const data = req.body
+app.post("/users", async (req: Request, res: Response) => {
+  const { name, email, age, address, phone } = req.body;
 
-    res.status(201).json(data)
-})
+  try {
+    const query = `INSERT INTO users(name, email, age, phone, address) VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
+    const value = [name, email, age, address, phone];
+
+   const result = await pool.query(query, value);
+   console.log(result.rows[0]);
+   
+
+    res.status(201).json({
+        success:true,
+        message: "Data inserted!"
+    })
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+  console.log(`Example app listening on port ${port}`);
+});
