@@ -94,7 +94,7 @@ app.get("/users/:id", async (req: Request, res: Response) => {
     // const query = `SELECT * FROM users WHERE id=${id}`; //not safe (vulnerable for sql injection)
     const query = `SELECT * FROM users WHERE id=$1`;
 
-    const result = await pool.query(query,[id]);
+    const result = await pool.query(query, [id]);
 
     if (result.rows.length <= 0) {
       return res.status(400).json({
@@ -116,15 +116,15 @@ app.get("/users/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.put("/users/:id", async(req: Request, res: Response) => {
+app.put("/users/:id", async (req: Request, res: Response) => {
   try {
-    const {id} = req.params;
-    const {name,email} = req.body;
+    const { id } = req.params;
+    const { name, email } = req.body;
     const query = `UPDATE users SET name=$1, email=$2 WHERE id=$3 RETURNING *`;
-    const result = await pool.query(query,[name,email,id]);
+    const result = await pool.query(query, [name, email, id]);
 
-    if(result.rows.length <=0){
-     return res.status(400).json({
+    if (result.rows.length <= 0) {
+      return res.status(400).json({
         success: false,
         message: "User Not Found",
       });
@@ -135,13 +135,30 @@ app.put("/users/:id", async(req: Request, res: Response) => {
       message: "Data UPDATED successfully!",
       data: result.rows[0],
     });
-
-  } catch (error:any) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: error.message,
     });
   }
+});
+
+app.delete("/users/:id", async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const query = `DELETE FROM users WHERE id=$1 RETURNING *`;
+  const result = await pool.query(query, [id]);
+  if (result.rowCount == 0) {
+    return res.status(400).json({
+      success: false,
+      message: "User is not deleted",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Data UPDATED successfully!",
+    deletedData: result.rows[0],
+  });
 });
 
 app.listen(port, () => {
