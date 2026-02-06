@@ -19,7 +19,7 @@ const initDB = async () => {
         email VARCHAR(120) UNIQUE NOT NULL,
         age INT,
         phone VARCHAR(15),
-        address TEXT,
+        address VARCHAR(20),
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
         )
@@ -37,6 +37,11 @@ const initDB = async () => {
             updated_at TIMESTAMP DEFAULT NOW()
         )
             `);
+
+  //     await pool.query(`
+  //   ALTER TABLE users
+  //   ALTER COLUMN address TYPE VARCHAR(120);
+  // `);
 };
 
 initDB();
@@ -53,7 +58,7 @@ app.post("/users", async (req: Request, res: Response) => {
 
   try {
     const query = `INSERT INTO users(name, email, age, phone, address) VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
-    const value = [name, email, age, address, phone];
+    const value = [name, email, age, phone, address];
 
     const result = await pool.query(query, value);
 
@@ -145,20 +150,47 @@ app.put("/users/:id", async (req: Request, res: Response) => {
 
 app.delete("/users/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
-  const query = `DELETE FROM users WHERE id=$1 RETURNING *`;
-  const result = await pool.query(query, [id]);
-  if (result.rowCount == 0) {
-    return res.status(400).json({
+  try {
+    const query = `DELETE FROM users WHERE id=$1 RETURNING *`;
+    const result = await pool.query(query, [id]);
+    if (result.rowCount == 0) {
+      return res.status(400).json({
+        success: false,
+        message: "User is not deleted",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Data UPDATED successfully!",
+      deletedData: result.rows[0],
+    });
+  } catch (error: any) {
+    res.status(500).json({
       success: false,
-      message: "User is not deleted",
+      message: error.message,
     });
   }
+});
 
-  res.status(200).json({
-    success: true,
-    message: "Data UPDATED successfully!",
-    deletedData: result.rows[0],
-  });
+// toDoes
+
+app.post("/todoes", async (req: Request, res: Response) => {
+  try {
+    const { user_id, title } = req.body;
+    const query = `INSERT INTO todoes(user_id, title) VALUES($1, $2) RETURNING *`;
+    const result = await pool.query(query, [user_id, title]);
+    res.status(201).json({
+      success: true,
+      message: "Data inserted!",
+      data: result.rows[0],
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 });
 
 app.listen(port, () => {
