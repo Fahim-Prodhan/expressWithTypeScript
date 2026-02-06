@@ -76,10 +76,10 @@ app.get("/users", async (req: Request, res: Response) => {
     const result = await pool.query(query);
 
     res.status(200).json({
-        success: true,
-        message: "Data Fetch successfully!",
-        data: result.rows,
-      });
+      success: true,
+      message: "Data Fetch successfully!",
+      data: result.rows,
+    });
   } catch (error: any) {
     res.status(500).json({
       success: false,
@@ -88,32 +88,61 @@ app.get("/users", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/users/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    // const query = `SELECT * FROM users WHERE id=${id}`; //not safe (vulnerable for sql injection)
+    const query = `SELECT * FROM users WHERE id=$1`;
 
-app.get('/users/:id', async(req:Request, res:Response)=>{
-    try {
-        const {id} = req.params;
-        const query = `SELECT * FROM users WHERE id=${id}`
-        const result = await pool.query(query);
+    const result = await pool.query(query,[id]);
 
-        if(result.rows.length <= 0){
-            return res.status(400).json({
-                success: false,
-                message: "User Not Found",
-              });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: "Data Fetch successfully!",
-            data: result.rows,
-          });
-    } catch (error:any) {
-        res.status(500).json({
-            success: false,
-            message: error.message,
-          });
+    if (result.rows.length <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "User Not Found",
+      });
     }
-})
+
+    res.status(200).json({
+      success: true,
+      message: "Data Fetch successfully!",
+      data: result.rows,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+app.put("/users/:id", async(req: Request, res: Response) => {
+  try {
+    const {id} = req.params;
+    const {name,email} = req.body;
+    const query = `UPDATE users SET name=$1, email=$2 WHERE id=$3 RETURNING *`;
+    const result = await pool.query(query,[name,email,id]);
+
+    if(result.rows.length <=0){
+     return res.status(400).json({
+        success: false,
+        message: "User Not Found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Data UPDATED successfully!",
+      data: result.rows[0],
+    });
+
+  } catch (error:any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
